@@ -3,9 +3,6 @@
 namespace App\Form;
 
 use App\Entity\Equipe;
-use App\Entity\Tournoi;
-use App\Entity\User;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -25,13 +22,6 @@ class Equipe1Type extends AbstractType
             ->add('maxMembers', IntegerType::class, [
                 'label' => 'Max Members',
                 'attr' => ['class' => 'form-control']
-            ])
-            ->add('Tournois', EntityType::class, [
-                'class' => Tournoi::class,
-                'choice_label' => 'nom',
-                'label' => 'Tournois',
-                'multiple' => true,
-                'attr' => ['class' => 'form-select']
             ])
             ->add('logo', FileType::class, [
                 'label' => 'Logo (PNG/JPEG)',
