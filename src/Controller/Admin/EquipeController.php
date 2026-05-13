@@ -3,10 +3,9 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Equipe;
-use App\Entity\Jeu;
+use App\Entity\User;
 use App\Form\Equipe1Type;
 use App\Repository\EquipeRepository;
-use App\Repository\JeuRepository;
 use App\Service\TeamExtractionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,11 +20,10 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 class EquipeController extends AbstractController
 {
     #[Route('/', name: 'admin_equipe_index', methods: ['GET'])]
-    public function index(EquipeRepository $equipeRepository, JeuRepository $jeuRepository): Response
+    public function index(EquipeRepository $equipeRepository): Response
     {
         return $this->render('equipe/admin/index.html.twig', [
             'equipes' => $equipeRepository->findAll(),
-            'jeux'    => $jeuRepository->findAll(),
         ]);
     }
 
@@ -33,6 +31,12 @@ class EquipeController extends AbstractController
     public function new(Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
     {
         $equipe = new Equipe();
+        $user = $this->getUser();
+        if ($user instanceof User) {
+            $equipe->setOwner($user);
+            $equipe->addMember($user);
+        }
+
         $form = $this->createForm(Equipe1Type::class, $equipe);
         $form->handleRequest($request);
 
@@ -78,22 +82,16 @@ class EquipeController extends AbstractController
             return $this->redirectToRoute('admin_equipe_index');
         }
 
-        $jeuId = $request->request->get('jeu_id');
-        if (!$jeuId) {
-            $this->addFlash('danger', 'Veuillez sélectionner un jeu.');
-            return $this->redirectToRoute('admin_equipe_index');
-        }
-
-        $jeu = $entityManager->getRepository(Jeu::class)->find($jeuId);
-        if (!$jeu) {
-            $this->addFlash('danger', 'Jeu introuvable.');
+        $count = (int) $request->request->get('count', 5);
+        if ($count < 1 || $count > 20) {
+            $this->addFlash('danger', 'Le nombre d\'équipes doit être entre 1 et 20.');
             return $this->redirectToRoute('admin_equipe_index');
         }
 
         /** @var \App\Entity\User $admin */
         $admin = $this->getUser();
 
-        $result = $extractionService->extractTeams($admin, $jeu->getNom());
+        $result = $extractionService->extractTeams($admin, 'Football', $count);
 
         if (!empty($result['errors'])) {
             foreach ($result['errors'] as $error) {

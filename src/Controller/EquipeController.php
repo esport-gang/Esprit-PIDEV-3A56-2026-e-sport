@@ -189,61 +189,60 @@ final class EquipeController extends AbstractController
         return $this->redirectToRoute('app_equipe_index');
     }
 
-    #[Route('/{id<\d+>}/membres', name: 'app_equipe_membres', methods: ['GET','POST'])]
+    #[Route('/{id<\d+>}/membres', name: 'app_equipe_membres', methods: ['GET', 'POST'])]
     public function invite(
         int $id,
         Request $request,
         EntityManagerInterface $entityManager
-    ): Response
-    {
+    ): Response {
         $equipe = $entityManager->getRepository(Equipe::class)->find($id);
         if (!$equipe) {
             return $this->redirectToRoute('app_equipe_index');
         }
-    
-        // Tous les users sauf admins et le owner de cette équipe
+
+        // Only the owner can manage members
+        if ($this->getUser() !== $equipe->getOwner()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        // All users except admins and the owner
         $allUsers = $entityManager->getRepository(User::class)->findAll();
-        $users = array_filter($allUsers, function($u) use ($equipe) {
-            $isAdmin = in_array('ROLE_ADMIN', $u->getRoles());
-            $isOwner = ($u === $equipe->getOwner());
-            return !$isAdmin && !$isOwner;
-        });
-    
-        // IDs des membres déjà dans l'équipe
+        $users = array_values(array_filter($allUsers, function ($u) use ($equipe) {
+            return !in_array('ROLE_ADMIN', $u->getRoles()) && $u !== $equipe->getOwner();
+        }));
+
+        // IDs of current members
         $teamUsers = [];
         foreach ($equipe->getMembers() as $member) {
             $teamUsers[] = $member->getId();
         }
-    
-        // Ajout d'un joueur
+
+        // Direct add on POST
         if ($request->isMethod('POST')) {
             $userId = $request->request->get('user_id');
-    
             if ($userId) {
                 $user = $entityManager->getRepository(User::class)->find($userId);
-    
                 if ($user && !in_array($user->getId(), $teamUsers)) {
                     if ($equipe->getMembers()->count() < $equipe->getMaxMembers()) {
                         $equipe->addMember($user);
                         $entityManager->flush();
-                    } 
+                        $this->addFlash('success', ($user->getNom() ?: $user->getEmail()) . ' a été ajouté à l\'équipe !');
+                    }
                 }
             }
-    
             return $this->redirectToRoute('app_equipe_membres', ['id' => $id]);
         }
-    
-        // Pending join requests
-        $pendingRequests = $entityManager->getRepository(JoinRequest::class)->findBy([
-            'equipe' => $equipe,
-            'status' => 'pending',
-        ], ['createdAt' => 'DESC']);
+
+        // Pending join requests (users asking to join)
+        /** @var \App\Repository\JoinRequestRepository $joinRepo */
+        $joinRepo        = $entityManager->getRepository(JoinRequest::class);
+        $pendingRequests = $joinRepo->findPendingRequestsForTeam($equipe);
 
         return $this->render('equipe/invite.html.twig', [
-            'equipe'    => $equipe,
-            'users'     => $users,
-            'teamUsers' => $teamUsers,
-            'isOwner'   => $this->getUser() === $equipe->getOwner(),
+            'equipe'          => $equipe,
+            'users'           => $users,
+            'teamUsers'       => $teamUsers,
+            'isOwner'         => true,
             'pendingRequests' => $pendingRequests,
         ]);
     }
@@ -457,10 +456,9 @@ final class EquipeController extends AbstractController
         // Pending join requests (for owner)
         $pendingRequests = [];
         if ($membership['role'] === 'LEADER') {
-            $pendingRequests = $entityManager->getRepository(JoinRequest::class)->findBy([
-                'equipe' => $equipe,
-                'status' => 'pending',
-            ], ['createdAt' => 'DESC']);
+            /** @var \App\Repository\JoinRequestRepository $joinRepo */
+            $joinRepo        = $entityManager->getRepository(JoinRequest::class);
+            $pendingRequests  = $joinRepo->findPendingRequestsForTeam($equipe);
         }
 
         return $this->render('equipe/dashboard.html.twig', [
@@ -503,9 +501,11 @@ final class EquipeController extends AbstractController
         }
 
         // Check for existing pending request
-        $existingRequest = $entityManager->getRepository(JoinRequest::class)->findOneBy([
+        /** @var \App\Repository\JoinRequestRepository $joinRepo */
+        $joinRepo       = $entityManager->getRepository(JoinRequest::class);
+        $existingRequest = $joinRepo->findOneBy([
             'equipe' => $equipe,
-            'user' => $user,
+            'user'   => $user,
             'status' => 'pending',
         ]);
 

@@ -1,0 +1,351 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mes Invitations{% endblock %}
+
+{% block body %}
+<style>
+/* ── Page ── */
+.inv-page {
+    min-height: 100vh;
+    padding: 60px 20px 100px;
+    background:
+        radial-gradient(ellipse at 15% 10%, rgba(245,158,11,0.13) 0%, transparent 45%),
+        radial-gradient(ellipse at 85% 90%, rgba(99,102,241,0.12) 0%, transparent 45%),
+        #0a0f1e;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #e5e7eb;
+}
+.inv-container { max-width: 860px; margin: 0 auto; }
+
+/* ── Header ── */
+.inv-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+.inv-header .page-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.25);
+    color: #f59e0b;
+    font-size: 0.82rem; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 18px; border-radius: 999px;
+    margin-bottom: 18px;
+}
+.inv-header h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    font-weight: 900; letter-spacing: -1px;
+    background: linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+}
+.inv-header p { color: #64748b; font-size: 1rem; }
+
+/* ── Counter badge ── */
+.count-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #000; font-size: 0.75rem; font-weight: 900;
+    margin-left: 8px;
+}
+
+/* ── Invitation Card ── */
+.inv-card {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(245,158,11,0.18);
+    border-radius: 22px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    animation: slideIn 0.5s ease both;
+    position: relative;
+}
+.inv-card:hover {
+    border-color: rgba(245,158,11,0.45);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(245,158,11,0.08);
+}
+
+/* Accent top bar */
+.inv-card-bar {
+    height: 4px;
+    background: linear-gradient(90deg, #f59e0b, #ec4899, #8b5cf6);
+}
+
+.inv-card-body {
+    display: flex; align-items: center; gap: 22px;
+    padding: 22px 28px;
+}
+
+/* ── Team Logo ── */
+.inv-logo {
+    width: 72px; height: 72px; border-radius: 16px;
+    flex-shrink: 0; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 900; color: #000;
+    position: relative;
+}
+.inv-logo img {
+    width: 100%; height: 100%; object-fit: cover;
+}
+.inv-logo-ring {
+    position: absolute; inset: -3px;
+    border-radius: 19px;
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, #f59e0b, #8b5cf6) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* ── Info ── */
+.inv-info { flex: 1; min-width: 0; }
+.inv-team-name {
+    font-size: 1.25rem; font-weight: 800;
+    color: #f1f5f9; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 10px;
+}
+.inv-team-name .owner-tag {
+    font-size: 0.72rem; font-weight: 600;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.2);
+    color: #f59e0b;
+    padding: 3px 10px; border-radius: 999px;
+    white-space: nowrap;
+}
+
+.inv-meta { color: #64748b; font-size: 0.85rem; margin-bottom: 10px; }
+.inv-meta strong { color: #94a3b8; }
+
+.inv-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.inv-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.75rem; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px;
+    border: 1px solid transparent;
+}
+.inv-tag.members {
+    background: rgba(56,189,248,0.08);
+    border-color: rgba(56,189,248,0.2);
+    color: #38bdf8;
+}
+.inv-tag.date {
+    background: rgba(148,163,184,0.06);
+    border-color: rgba(148,163,184,0.15);
+    color: #94a3b8;
+}
+
+/* ── Actions ── */
+.inv-actions {
+    display: flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0; min-width: 120px;
+}
+.btn-accept-inv {
+    border: none; padding: 11px 0; border-radius: 12px;
+    font-weight: 800; font-size: 0.88rem; cursor: pointer; width: 100%;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(34,197,94,0.35);
+    transition: all 0.3s ease;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-accept-inv:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 28px rgba(34,197,94,0.5);
+}
+.btn-decline-inv {
+    border: 1px solid rgba(239,68,68,0.3); padding: 10px 0; border-radius: 12px;
+    font-weight: 700; font-size: 0.88rem; cursor: pointer; width: 100%;
+    background: rgba(239,68,68,0.07); color: #ef4444;
+    transition: all 0.3s ease;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-decline-inv:hover {
+    background: rgba(239,68,68,0.18);
+    border-color: rgba(239,68,68,0.5);
+    transform: translateY(-2px);
+}
+
+/* ── Empty state ── */
+.inv-empty {
+    text-align: center; padding: 90px 20px;
+    border: 1px dashed rgba(148,163,184,0.15);
+    border-radius: 24px;
+    background: rgba(15,23,42,0.4);
+}
+.inv-empty .emoji { font-size: 4rem; margin-bottom: 20px; display: block; }
+.inv-empty h3 { font-size: 1.3rem; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; }
+.inv-empty p { color: #475569; font-size: 0.95rem; }
+
+/* ── Flash ── */
+.flash-success {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.25);
+    color: #4ade80;
+    padding: 14px 20px; border-radius: 14px;
+    margin-bottom: 20px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+}
+.flash-info {
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.25);
+    color: #a5b4fc;
+    padding: 14px 20px; border-radius: 14px;
+    margin-bottom: 20px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+}
+
+/* ── Back ── */
+.btn-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: #64748b; text-decoration: none; font-weight: 600;
+    padding: 11px 22px; border-radius: 12px;
+    border: 1px solid rgba(148,163,184,0.12);
+    background: rgba(15,23,42,0.5);
+    transition: all 0.3s ease;
+    margin-top: 32px;
+}
+.btn-back:hover {
+    color: #38bdf8;
+    border-color: rgba(56,189,248,0.3);
+    transform: translateX(-4px);
+}
+
+/* ── Animations ── */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.inv-card:nth-child(1) { animation-delay: 0.05s; }
+.inv-card:nth-child(2) { animation-delay: 0.12s; }
+.inv-card:nth-child(3) { animation-delay: 0.19s; }
+.inv-card:nth-child(4) { animation-delay: 0.26s; }
+.inv-card:nth-child(5) { animation-delay: 0.33s; }
+
+@media (max-width: 600px) {
+    .inv-card-body { flex-direction: column; align-items: flex-start; }
+    .inv-actions { flex-direction: row; width: 100%; min-width: unset; }
+    .btn-accept-inv, .btn-decline-inv { flex: 1; }
+}
+</style>
+
+<div class="inv-page">
+    <div class="inv-container">
+
+        {# ── Header ── #}
+        <div class="inv-header">
+            <div class="page-pill">
+                <span>📬</span> Invitations reçues
+            </div>
+            <h1>
+                Mes Invitations
+                {% if invitations|length > 0 %}
+                    <span class="count-badge">{{ invitations|length }}</span>
+                {% endif %}
+            </h1>
+            <p>Des équipes souhaitent vous recruter. Acceptez ou refusez ci-dessous.</p>
+        </div>
+
+        {# ── Flash messages ── #}
+        {% for msg in app.flashes('success') %}
+            <div class="flash-success">✓ {{ msg }}</div>
+        {% endfor %}
+        {% for msg in app.flashes('info') %}
+            <div class="flash-info">ℹ {{ msg }}</div>
+        {% endfor %}
+
+        {# ── Invitation Cards ── #}
+        {% if invitations|length > 0 %}
+
+            {% for inv in invitations %}
+            <div class="inv-card">
+                <div class="inv-card-bar"></div>
+                <div class="inv-card-body">
+
+                    {# Team Logo #}
+                    <div style="position:relative;flex-shrink:0;">
+                        <div class="inv-logo">
+                            {% if inv.equipe.logo %}
+                                <img src="{{ asset('uploads/teams/' ~ inv.equipe.logo) }}" alt="{{ inv.equipe.nom }}">
+                            {% else %}
+                                {{ inv.equipe.nom|first|upper }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# Info #}
+                    <div class="inv-info">
+                        <div class="inv-team-name">
+                            {{ inv.equipe.nom }}
+                            <span class="owner-tag">👑 {{ inv.equipe.owner.nom ?: inv.equipe.owner.email }}</span>
+                        </div>
+                        <div class="inv-meta">
+                            Invitation envoyée le <strong>{{ inv.createdAt|date('d/m/Y') }}</strong>
+                            à <strong>{{ inv.createdAt|date('H:i') }}</strong>
+                        </div>
+                        <div class="inv-tags">
+                            <span class="inv-tag members">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                {{ inv.equipe.members|length }} / {{ inv.equipe.maxMembers }} membres
+                            </span>
+                            <span class="inv-tag date">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                {{ inv.createdAt|date('d MMM Y') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    {# Actions #}
+                    <div class="inv-actions">
+                        <form method="post" action="{{ path('app_equipe_respond_invite', {inviteId: inv.id, action: 'accept'}) }}">
+                            <button type="submit" class="btn-accept-inv">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Rejoindre
+                            </button>
+                        </form>
+                        <form method="post" action="{{ path('app_equipe_respond_invite', {inviteId: inv.id, action: 'decline'}) }}">
+                            <button type="submit" class="btn-decline-inv">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                Refuser
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+
+        {% else %}
+            <div class="inv-empty">
+                <span class="emoji">📭</span>
+                <h3>Aucune invitation en attente</h3>
+                <p>Les équipes qui vous invitent à rejoindre leur roster apparaîtront ici.</p>
+            </div>
+        {% endif %}
+
+        <div style="text-align:center;">
+            <a href="{{ path('app_equipe_index') }}" class="btn-back">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Retour aux équipes
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

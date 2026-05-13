@@ -65,9 +65,11 @@
             <h1 class="page-title">Games Management</h1>
             <p class="page-subtitle">Manage esports titles and categories</p>
         </div>
-        <a href="{{ path('admin_jeu_new') }}" class="btn btn-primary">
-            <i class="fas fa-plus-circle me-2"></i>New Game
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ path('admin_jeu_new') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>New Game
+            </a>
+        </div>
     </div>
     
     <div class="row mb-4">
@@ -140,4 +142,5 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
