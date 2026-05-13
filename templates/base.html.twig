@@ -127,12 +127,21 @@
         <a class="dropdown-item" href="">Single blog</a>
     </div>
 </li>
-<li class="nav-item ms-2">
-                                <a class="nav-link live-link" href="{{ path('app_stream_index') }}">
-                                    <span class="live-dot me-1"></span>
-                                    LIVE
-                                </a>
-                            </li>
+<li class="nav-item">
+    <a class="nav-link {{ 'video_' in app.request.get('_route') ? 'active' : '' }}"
+       href="{{ path('video_list') }}">
+        <i class="fas fa-play-circle"></i>
+        Videos
+    </a>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link live-stream-btn" href="{{ path('app_user_stream') }}">
+        <i class="fas fa-circle live-dot"></i>
+        Live Stream
+    </a>
+</li>
+
 <li class="nav-item">
 <a class="nav-link" href="{{ path('app_product_index2') }}">Products</a>
 </li>

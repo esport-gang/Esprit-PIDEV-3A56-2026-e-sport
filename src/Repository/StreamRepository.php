@@ -6,9 +6,6 @@ use App\Entity\Stream;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Stream>
- */
 class StreamRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -16,28 +13,25 @@ class StreamRepository extends ServiceEntityRepository
         parent::__construct($registry, Stream::class);
     }
 
-    //    /**
-    //     * @return Stream[] Returns an array of Stream objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('s.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    // ================= GET ACTIVE STREAM =================
+    public function findActiveStream(): ?Stream
+    {
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.active = :active')
+            ->setParameter('active', true)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 
-    //    public function findOneBySomeField($value): ?Stream
-    //    {
-    //        return $this->createQueryBuilder('s')
-    //            ->andWhere('s.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    // ================= CHECK IF STREAM EXISTS =================
+    public function hasAnyStream(): bool
+    {
+        $count = $this->createQueryBuilder('s')
+            ->select('COUNT(s.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $count > 0;
+    }
 }

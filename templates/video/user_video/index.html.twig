@@ -1,0 +1,260 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Videos{% endblock %}
+
+{% block body %}
+
+<style>
+body {
+    background: #0f172a;
+}
+
+/* CONTAINER */
+.video-page {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+}
+
+/* LEFT */
+.video-list {
+    width: 25%;
+    height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.video-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(148,163,184,0.1);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    transition: 0.3s;
+}
+
+.video-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+.video-card img {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+}
+
+.video-card p {
+    padding: 10px;
+    margin: 0;
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* CENTER */
+.video-player {
+    width: 55%;
+}
+
+.video-box {
+    position: sticky;
+    top: 20px;
+}
+
+.video-player video {
+    width: 100%;
+    border-radius: 16px;
+    background: black;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.video-title {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+/* REACTIONS */
+.reactions {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.react-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(148,163,184,0.2);
+    padding: 8px 12px;
+    border-radius: 10px;
+    color: white;
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.react-btn:hover {
+    background: #1d4ed8;
+    transform: scale(1.05);
+}
+
+/* COMMENTS */
+.comment-section {
+    margin-top: 25px;
+}
+
+.comment-form input {
+    background: #1e293b;
+    border: 1px solid rgba(148,163,184,0.2);
+    color: white;
+}
+
+.comment-form input:focus {
+    background: #1e293b;
+    color: white;
+    box-shadow: none;
+}
+
+.comment-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(148,163,184,0.1);
+    padding: 12px;
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+.comment-user {
+    color: #fff;
+    font-weight: 600;
+}
+
+.comment-text {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+/* RIGHT */
+.video-right {
+    width: 20%;
+}
+
+.side-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(148,163,184,0.1);
+    padding: 15px;
+    border-radius: 14px;
+}
+</style>
+
+<div class="video-page">
+
+    <!-- LEFT -->
+    <div class="video-list">
+
+        {% for v in videos %}
+
+            <a href="{{ path('video_show', {id: v.id}) }}"
+               style="text-decoration:none;">
+
+                <div class="video-card">
+
+                    <img src="{{ v.thumbnail }}">
+
+                    <p>{{ v.title }}</p>
+
+                </div>
+
+            </a>
+
+        {% endfor %}
+
+    </div>
+
+    <!-- CENTER -->
+    <div class="video-player">
+
+        {% if video %}
+
+        <div class="video-box">
+
+            <div class="video-title">{{ video.title }}</div>
+
+            <video controls>
+                <source src="{{ video.path }}" type="video/mp4">
+            </video>
+
+            <!-- REACTIONS -->
+            <div class="reactions">
+
+                {% for emoji in ['❤️','😂','😮','😡'] %}
+
+                    <a class="react-btn"
+                       href="{{ path('video_react', {id: video.id, type: emoji}) }}">
+                        {{ emoji }}
+                    </a>
+
+                {% endfor %}
+
+                <span style="color:#94a3b8;">
+                    {{ video.videoReactions|length }} reactions
+                </span>
+
+            </div>
+
+            <!-- COMMENTS -->
+            <div class="comment-section">
+
+                <form method="post"
+                      action="{{ path('video_comment', {id: video.id}) }}"
+                      class="comment-form d-flex gap-2">
+
+                    <input type="text"
+                           name="body"
+                           class="form-control"
+                           placeholder="Write a comment...">
+
+                    <button class="btn btn-success">
+                        Send
+                    </button>
+
+                </form>
+
+                {% for c in video.videoComments %}
+
+                    <div class="comment-box">
+
+                        <div class="comment-user">{{ c.username }}</div>
+                        <div class="comment-text">{{ c.body }}</div>
+
+                    </div>
+
+                {% else %}
+
+                    <p style="color:#94a3b8;">No comments yet</p>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    <!-- RIGHT -->
+    <div class="video-right">
+
+        <div class="side-box">
+            <h6 style="color:white;">🔥 Trending</h6>
+            <p style="color:#94a3b8;">
+                Esports highlights & gaming clips
+            </p>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

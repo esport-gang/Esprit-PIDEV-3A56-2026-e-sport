@@ -1,0 +1,141 @@
+{% extends 'admin/dashboard.html.twig' %}
+
+{% block title %}Admin Stream{% endblock %}
+
+{% block admin_content %}
+
+<h2 class="text-white mb-3">🎥 Live Stream Admin</h2>
+
+{% if stream %}
+
+<!-- ================= VIDEO ================= -->
+<video id="videoPlayer"
+       controls
+       autoplay
+       style="width:100%;border-radius:16px;background:black;"></video>
+
+<!-- ================= REACTIONS ================= -->
+<div class="mt-3 text-white d-flex gap-3">
+    <span id="like">👍 0</span>
+    <span id="love">❤️ 0</span>
+    <span id="haha">😂 0</span>
+    <span id="wow">😮 0</span>
+</div>
+
+<!-- ================= CHAT ================= -->
+<div class="mt-4">
+
+    <div id="chatBox"
+         style="height:300px;overflow:auto;background:#111827;padding:10px;border-radius:10px;color:white;">
+    </div>
+
+    <div class="d-flex mt-2">
+        <input id="msg" class="form-control" placeholder="Write message...">
+        <button class="btn btn-success ms-2" onclick="sendMessage()">Send</button>
+    </div>
+
+    <!-- optional reaction buttons -->
+    <div class="mt-2 d-flex gap-2">
+        <button class="btn btn-dark" onclick="sendReaction('like')">👍</button>
+        <button class="btn btn-dark" onclick="sendReaction('love')">❤️</button>
+        <button class="btn btn-dark" onclick="sendReaction('haha')">😂</button>
+        <button class="btn btn-dark" onclick="sendReaction('wow')">😮</button>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ================= STREAM ================= */
+    const video = document.getElementById('videoPlayer');
+    const url = "{{ stream.url }}";
+
+    if (video && url) {
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+        } else {
+            video.src = url;
+        }
+    }
+
+    /* ================= STREAM ID ================= */
+    const streamId = {{ stream.id }};
+
+    /* ================= MERCURE TOPIC ================= */
+    const topic = "stream/chat/" + streamId;
+
+    const eventSource = new EventSource(
+        "http://localhost:3000/.well-known/mercure?topic=" + encodeURIComponent(topic)
+    );
+
+    eventSource.onmessage = (event) => {
+
+        const data = JSON.parse(event.data);
+        const box = document.getElementById("chatBox");
+
+        if (!box) return;
+
+        /* ================= CHAT ================= */
+        if (data.type === "chat") {
+            box.innerHTML += `
+                <div style="margin-bottom:8px;background:#2563eb;padding:6px;border-radius:8px;">
+                    <b>${data.user}</b>: ${data.message}
+                </div>
+            `;
+        }
+
+        /* ================= REACTION ================= */
+        if (data.type === "reaction") {
+
+            const el = document.getElementById(data.reaction);
+
+            if (el) {
+                let match = el.innerText.match(/\d+/);
+                let count = match ? parseInt(match[0]) : 0;
+                el.innerText = `${data.emoji} ${count + 1}`;
+            }
+        }
+
+        box.scrollTop = box.scrollHeight;
+    };
+
+    /* ================= SEND MESSAGE ================= */
+    window.sendMessage = function () {
+
+        const msg = document.getElementById("msg");
+        const text = msg.value;
+
+        if (!text.trim()) return;
+
+        fetch(`/admin/stream/chat/${streamId}`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        });
+
+        msg.value = "";
+    };
+
+    /* ================= SEND REACTION ================= */
+    window.sendReaction = function (type) {
+
+        fetch(`/admin/stream/react/${streamId}/${type}`, {
+            method: "POST"
+        });
+    };
+
+});
+</script>
+
+{% else %}
+
+<div class="alert alert-danger">No Active Stream</div>
+
+{% endif %}
+
+{% endblock %}
