@@ -47,15 +47,7 @@ class MatchGame
     #[Assert\NotNull(message: 'Veuillez sélectionner un tournoi.')]
     private ?Tournoi $tournoi = null;
 
-    /**
-     * @var Collection<int, Stream>
-     */
-    #[ORM\OneToMany(targetEntity: Stream::class, mappedBy: 'matchGame', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $streams;
-public function __construct()
-    {
-        $this->streams = new ArrayCollection();
-    }
+
 
     // getters setters
 
@@ -154,33 +146,7 @@ public function __construct()
     }
     
 
-    /**
-     * @return Collection<int, Stream>
-     */
-    public function getStreams(): Collection
-    {
-        return $this->streams;
-    }
+   
 
-    public function addStreams(Stream $streams): static
-    {
-        if (!$this->streams->contains($streams)) {
-            $this->streams->add($streams);
-            $streams->setMatchGame($this);
-        }
 
-        return $this;
-    }
-
-    public function removeStreams(Stream $streams): static
-    {
-        if ($this->streams->removeElement($streams)) {
-            // set the owning side to null (unless already changed)
-            if ($streams->getMatchGame() === $this) {
-                $streams->setMatchGame(null);
-            }
-        }
-
-        return $this;
-    }
 }
