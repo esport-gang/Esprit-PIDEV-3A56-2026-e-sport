@@ -413,7 +413,7 @@
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-gm gen" data-bs-toggle="modal" data-bs-target="#generateModal" style="animation:none;">
-                <i class="fas fa-wand-magic-sparkles me-2"></i>Générer Matchs
+                <i class="fas fa-sitemap me-2"></i>Round Robin
             </button>
             <a href="{{ path('admin_match_game_new') }}" class="btn btn-primary">
                 <i class="fas fa-plus-circle me-2"></i>New Match
@@ -485,7 +485,9 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 <div>
-                                    <div class="fw-medium">{{ match_game.equipe1.nom }} vs {{ match_game.equipe2.nom }}</div>
+                                    <div class="fw-medium">
+                                        {{ match_game.equipe1 ? match_game.equipe1.nom : 'Équipe manquante' }} vs {{ match_game.equipe2 ? match_game.equipe2.nom : 'Équipe manquante' }}
+                                    </div>
                                     <small class="text-muted">{{ match_game.dateMatch|date('d M Y, H:i') }}</small>
                                 </div>
                             </div>
@@ -545,14 +547,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="generateModalLabel">
-                    <span class="gm-title-icon"><i class="fas fa-wand-magic-sparkles"></i></span>
-                    Générer les Matchs
+                    <span class="gm-title-icon"><i class="fas fa-sitemap"></i></span>
+                    Générer Round Robin
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p class="gm-subtitle">
-                    Sélectionnez un tournoi ci-dessous pour générer automatiquement tous les matchs round-robin.
+                    Sélectionnez un tournoi ci-dessous pour générer automatiquement le schéma Round Robin.
                 </p>
 
                 {# Search #}

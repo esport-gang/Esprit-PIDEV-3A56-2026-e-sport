@@ -119,9 +119,34 @@
 </div>
 
 <div class="team-content">
+    {% set memberList = equipe.members|default([]) %}
+    {% if equipe.owner and equipe.owner not in memberList %}
+        {% set memberList = [equipe.owner]|merge(memberList|slice(0)) %}
+    {% endif %}
+
+    {% set rawLogo = equipe.logo is defined and equipe.logo ? equipe.logo : null %}
+    {% set logoFile = rawLogo ? rawLogo|replace({'\\': '/'}) : null %}
+    {% if logoFile %}
+        {% if logoFile starts with 'http' %}
+            {% set logoSrc = logoFile %}
+        {% else %}
+            {% set normalized = logoFile %}
+            {% if normalized starts with '/uploads/teams/' %}
+                {% set normalized = normalized|slice(1) %}
+            {% endif %}
+            {% if normalized starts with 'uploads/teams/' %}
+                {% set logoSrc = asset(normalized) %}
+            {% else %}
+                {% set logoSrc = asset('uploads/teams/' ~ (normalized|split('/')|last)) %}
+            {% endif %}
+        {% endif %}
+    {% else %}
+        {% set logoSrc = null %}
+    {% endif %}
+
     <div class="logo-card">
-        {% if equipe.logo %}
-            <img src="{{ asset('uploads/teams/' ~ equipe.logo) }}" class="team-logo-lg" alt="">
+        {% if logoSrc %}
+            <img src="{{ logoSrc }}" class="team-logo-lg" alt="{{ equipe.nom }}">
         {% else %}
             <div class="team-logo-lg bg-secondary d-flex align-items-center justify-content-center mx-auto">
                 <i class="fas fa-users fa-4x text-white-50"></i>
@@ -141,12 +166,12 @@
 
         <div class="detail-row">
             <span class="detail-label">Capacity</span>
-            <span class="detail-value">{{ equipe.members|length }} / {{ equipe.maxMembers }}</span>
+            <span class="detail-value">{{ memberList|length }} / {{ equipe.maxMembers }}</span>
         </div>
 
         <div class="member-list">
             <h5><i class="fas fa-users me-2"></i>Active Members</h5>
-            {% for member in equipe.members %}
+            {% for member in memberList %}
                 <div class="member-item">
                     <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                         <span class="text-white small">{{ member.nom|first|upper }}</span>

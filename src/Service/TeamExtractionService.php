@@ -21,6 +21,9 @@ class TeamExtractionService
     // OpenDota API pour Dota 2 (gratuite, pas de clé)
     private const OPENDOTA_API_URL = 'https://api.opendota.com/api/teams';
 
+    // API ESPN utilisée dans le projet desktop pour générer des équipes sportives
+    private const SPORTS_API_URL = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams';
+
     // Limite d'équipes importées par extraction
     private const MAX_TEAMS_PER_IMPORT = 5;
 
@@ -75,17 +78,18 @@ class TeamExtractionService
      * @param string $gameName Le nom du jeu
      * @return array{created: int, skipped: int, errors: string[], game: string}
      */
-    public function extractTeams(User $owner, string $gameName): array
+    public function extractTeams(User $owner, string $gameName, int $count = self::MAX_TEAMS_PER_IMPORT): array
     {
         $slug = $this->resolveGameSlug($gameName);
-        $this->logger->info('Team extraction started', ['game' => $gameName, 'slug' => $slug]);
+        $this->logger->info('Team extraction started', ['game' => $gameName, 'slug' => $slug, 'count' => $count]);
 
         return match ($slug) {
-            'lol'       => $this->extractLoLTeams($owner),
-            'valorant'  => $this->extractValorantTeams($owner),
-            'cs2'       => $this->extractCS2Teams($owner),
-            'dota2'     => $this->extractDota2Teams($owner),
-            default     => $this->extractViaLoLEsports($owner, $gameName),
+            'lol'       => $this->extractLoLTeams($owner, $count),
+            'valorant'  => $this->extractValorantTeams($owner, $count),
+            'cs2'       => $this->extractCS2Teams($owner, $count),
+            'dota2'     => $this->extractDota2Teams($owner, $count),
+            'football'  => $this->extractSportsApiTeams($owner, $gameName, $count),
+            default     => $this->extractViaLoLEsports($owner, $gameName, $count),
         };
     }
 
@@ -93,7 +97,7 @@ class TeamExtractionService
     //  LEAGUE OF LEGENDS — LoL Esports API
     // =====================================================================
 
-    private function extractLoLTeams(User $owner): array
+    private function extractLoLTeams(User $owner, int $count): array
     {
         $result = $this->initResult('League of Legends');
 
@@ -129,7 +133,7 @@ class TeamExtractionService
             });
 
             // Limiter le nombre d'équipes
-            $teams = array_slice($teams, 0, self::MAX_TEAMS_PER_IMPORT);
+            $teams = array_slice($teams, 0, $count);
 
             $this->importTeams($owner, $teams, $result, 'name', 'image');
         } catch (\Exception $e) {
@@ -143,7 +147,7 @@ class TeamExtractionService
     //  VALORANT — VLR.gg Community API
     // =====================================================================
 
-    private function extractValorantTeams(User $owner): array
+    private function extractValorantTeams(User $owner, int $count): array
     {
         $result = $this->initResult('Valorant');
         $regions = ['eu', 'na', 'ap', 'la', 'oce'];
@@ -192,7 +196,7 @@ class TeamExtractionService
             }
 
             // Limiter
-            $allTeams = array_slice($allTeams, 0, self::MAX_TEAMS_PER_IMPORT);
+            $allTeams = array_slice($allTeams, 0, $count);
 
             $existingNames = $this->getExistingTeamNames();
 
@@ -226,7 +230,7 @@ class TeamExtractionService
     //  (beaucoup d'organisations esport ont des équipes multi-jeux)
     // =====================================================================
 
-    private function extractCS2Teams(User $owner): array
+    private function extractCS2Teams(User $owner, int $count): array
     {
         $result = $this->initResult('Counter-Strike 2');
 
@@ -278,9 +282,9 @@ class TeamExtractionService
                 $activeTeams = array_filter($teams, fn($t) =>
                     ($t['name'] ?? '') !== 'TBD' && !empty($t['name']) && ($t['status'] ?? '') === 'active'
                 );
-                $filtered = array_slice($activeTeams, 0, self::MAX_TEAMS_PER_IMPORT);
+                $filtered = array_slice($activeTeams, 0, $count);
             } else {
-                $filtered = array_slice($filtered, 0, self::MAX_TEAMS_PER_IMPORT);
+                $filtered = array_slice($filtered, 0, $count);
             }
 
             $this->importTeams($owner, $filtered, $result, 'name', 'image');
@@ -295,7 +299,7 @@ class TeamExtractionService
     //  DOTA 2 — OpenDota API (gratuite, pas de clé)
     // =====================================================================
 
-    private function extractDota2Teams(User $owner): array
+    private function extractDota2Teams(User $owner, int $count): array
     {
         $result = $this->initResult('Dota 2');
 
@@ -318,7 +322,7 @@ class TeamExtractionService
             }
 
             // Prendre les premières équipes (déjà triées par rating)
-            $teams = array_slice($data, 0, self::MAX_TEAMS_PER_IMPORT);
+            $teams = array_slice($data, 0, $count);
 
             $existingNames = $this->getExistingTeamNames();
 
@@ -347,11 +351,81 @@ class TeamExtractionService
     }
 
     // =====================================================================
+    //  FOOTBALL / SPORT GENERIC — API ESPN utilisée par le projet desktop
+    // =====================================================================
+
+    private function extractSportsApiTeams(User $owner, string $gameName, int $count): array
+    {
+        $result = $this->initResult($gameName);
+
+        try {
+            $response = $this->httpClient->request('GET', self::SPORTS_API_URL, [
+                'timeout' => 20,
+                'verify_peer' => false,
+            ]);
+
+            if ($response->getStatusCode() !== 200) {
+                $result['errors'][] = "L'API ESPN a retourné le code HTTP " . $response->getStatusCode();
+                return $result;
+            }
+
+            $data = $response->toArray();
+            $teamsArray = $data['sports'][0]['leagues'][0]['teams'] ?? [];
+
+            if (empty($teamsArray)) {
+                $result['errors'][] = "Aucune équipe sportive trouvée via l'API ESPN.";
+                return $result;
+            }
+
+            $indices = range(0, count($teamsArray) - 1);
+            shuffle($indices);
+
+            $existingNames = $this->getExistingTeamNames();
+            $selected = 0;
+
+            foreach ($indices as $idx) {
+                if ($selected >= $count) {
+                    break;
+                }
+
+                $wrapper = $teamsArray[$idx];
+                $teamObj = $wrapper['team'] ?? [];
+                $teamName = $teamObj['displayName'] ?? null;
+                if (!$teamName || mb_strlen($teamName) > 100) {
+                    continue;
+                }
+
+                $lowerName = mb_strtolower($teamName);
+                if (in_array($lowerName, $existingNames, true)) {
+                    $result['skipped']++;
+                    continue;
+                }
+
+                $logoUrl = '';
+                if (!empty($teamObj['logos']) && is_array($teamObj['logos'])) {
+                    $logoUrl = $teamObj['logos'][0]['href'] ?? '';
+                }
+
+                $this->createEquipe($owner, $teamName, $logoUrl);
+                $result['created']++;
+                $existingNames[] = $lowerName;
+                $selected++;
+            }
+
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            $result['errors'][] = "Erreur API ESPN : " . $e->getMessage();
+        }
+
+        return $result;
+    }
+
+    // =====================================================================
     //  FALLBACK — Utilise LoL Esports API pour les autres jeux
     //  (les orgs esport sont multi-jeux : PUBG, Fortnite, Overwatch, etc.)
     // =====================================================================
 
-    private function extractViaLoLEsports(User $owner, string $gameName): array
+    private function extractViaLoLEsports(User $owner, string $gameName, int $count): array
     {
         $result = $this->initResult($gameName);
 
@@ -379,7 +453,7 @@ class TeamExtractionService
                 && ($t['status'] ?? '') === 'active'
             );
 
-            $teams = array_slice($teams, 0, self::MAX_TEAMS_PER_IMPORT);
+            $teams = array_slice($teams, 0, $count);
 
             if (empty($teams)) {
                 $result['errors'][] = "Aucune équipe trouvée pour « {$gameName} ».";
@@ -446,6 +520,7 @@ class TeamExtractionService
         $equipe = new Equipe();
         $equipe->setNom($name);
         $equipe->setOwner($owner);
+        $equipe->addMember($owner);
         $equipe->setMaxMembers(5);
 
         if ($logoUrl) {

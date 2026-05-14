@@ -9,6 +9,8 @@ use App\Repository\MatchGameRepository;
 use App\Repository\TournoiRepository;
 use App\Service\MatchGeneratorService;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityNotFoundException;
+use Doctrine\Persistence\Proxy;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,6 +35,28 @@ class MatchGameController extends AbstractController
         } else {
             $match_games = $matchGameRepository->findAll();
         }
+
+        // Filter out match games whose linked teams were deleted or cannot be loaded
+        $validMatchGames = [];
+        foreach ($match_games as $match_game) {
+            try {
+                foreach ([$match_game->getEquipe1(), $match_game->getEquipe2(), $match_game->getTournoi()] as $assoc) {
+                    if (!$assoc) {
+                        throw new \RuntimeException('Missing related entity');
+                    }
+                    if ($assoc instanceof Proxy) {
+                        $assoc->__load();
+                    }
+                    $assoc->getId();
+                }
+                $validMatchGames[] = $match_game;
+            } catch (EntityNotFoundException $e) {
+                continue;
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+        $match_games = $validMatchGames;
 
         // Tournament data for the generate modal
         $tournois = $tournoiRepository->findBy([], ['date_debut' => 'DESC']);

@@ -148,12 +148,8 @@
             <form method="POST" action="{{ path('admin_equipe_extract') }}" class="d-inline" id="extractForm">
                 <input type="hidden" name="_token" value="{{ csrf_token('extract_teams') }}">
                 <div class="extract-group">
-                    <select name="jeu_id" class="game-select" id="gameSelect" required>
-                        <option value="" disabled selected>Choisir un jeu...</option>
-                        {% for jeu in jeux %}
-                            <option value="{{ jeu.id }}">{{ jeu.nom }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="teamCount" class="mb-0">Nombre d'équipes</label>
+                    <input type="number" id="teamCount" name="count" class="game-select" min="1" max="20" value="5" title="Nombre d'équipes à importer" style="width: 5.5rem;" required>
                     <button type="submit" class="btn-extract" id="extractBtn">
                         <span class="btn-icon"><i class="fas fa-cloud-download-alt"></i></span>
                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>

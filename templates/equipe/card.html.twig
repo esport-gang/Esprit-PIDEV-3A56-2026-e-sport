@@ -1,68 +1,58 @@
-{# templates/equipe/card.html.twig #}
+{# templates/equipe/card.html.twig — Style PIDEV Java #}
 
-<div class="team-card">
+{% set rang = (rankingByTeamId is defined and equipe.id in rankingByTeamId|keys)
+    ? rankingByTeamId[equipe.id].rang
+    : loop.index %}
 
-    <!-- Glow background -->
-    <div class="team-glow"></div>
+<div class="roster-card">
 
-    <!-- Header -->
-    <div class="team-header">
-        {% if rankingByTeamId is defined and equipe.id in rankingByTeamId|keys %}
-            <span class="team-number">#{{ rankingByTeamId[equipe.id].rang }}</span>
-        {% else %}
-            <span class="team-number">#{{ loop.index }}</span>
-        {% endif %}
+    {# Rank badge top-left #}
+    <span class="rc-rank">#{{ rang }}</span>
+
+    {# Circular avatar with purple ring #}
+    <div class="rc-avatar-wrap">
+        <div class="rc-avatar-ring"></div>
+        <div class="rc-avatar">
+            {% if equipe.logo %}
+                <img src="{{ asset('uploads/teams/' ~ equipe.logo) }}" alt="{{ equipe.nom }}">
+            {% else %}
+                <img src="{{ asset('img/logo.png') }}" alt="{{ equipe.nom }}">
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Avatar -->
-    <div class="team-avatar">
-        {% if equipe.logo %}
-            <img src="{{ asset('uploads/teams/' ~ equipe.logo) }}" alt="{{ equipe.nom }}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;">
-        {% else %}
-            <img src="{{ asset('img/logo.png') }}" alt="{{ equipe.nom }}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;">
-        {% endif %}
+    {# Team name #}
+    <h2 class="rc-name">{{ equipe.nom }}</h2>
+
+    {# Subtitle #}
+    <p class="rc-sub">ESPORT TEAM</p>
+
+    {# QR button — small, top-right of actions area #}
+    <div class="rc-qr-row">
+        <a href="{{ path('app_equipe_show', {id: equipe.id}) }}"
+           class="rc-qr-btn" title="Voir l'équipe">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/><rect x="17" y="17" width="3" height="3"/>
+                <rect x="14" y="14" width="3" height="3"/>
+            </svg>
+            QR
+        </a>
     </div>
 
-    <!-- Name -->
-    <h2 class="team-name">{{ equipe.nom }}</h2>
-
-    <!-- Meta badge -->
-    <div class="team-meta">
-        <span class="team-badge">ESPORT TEAM</span>
-    </div>
-
-    <!-- Actions -->
-    <div class="team-actions">
-
-        <button type="button"
-                class="btn btn-view"
-                onclick="openModal('modal-{{ equipe.id }}')">
-            <i class="fas fa-eye"></i>
-            View
-        </button>
-
-        {% if is_member|default(false) %}
-            <a href="{{ path('app_equipe_dashboard', {id: equipe.id}) }}"
-               class="btn btn-join">
-                <i class="fas fa-tachometer-alt"></i>
-                Mon équipe
-            </a>
-        {% elseif pendingTeamIds is defined and equipe.id in pendingTeamIds %}
-            <span class="btn" style="flex:1;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);cursor:default;">
-                <i class="fas fa-clock"></i>
-                ⏳ En attente
-            </span>
-        {% else %}
-            <a href="{{ path('app_equipe_join', {id: equipe.id}) }}"
-               class="btn btn-join">
-                <i class="fas fa-users"></i>
-                Join Team
-            </a>
-        {% endif %}
-
-    </div>
+    {# Main action button #}
+    {% if is_member|default(false) %}
+        <a href="{{ path('app_equipe_dashboard', {id: equipe.id}) }}" class="rc-btn rc-btn-dash">
+            Mon équipe →
+        </a>
+    {% elseif pendingTeamIds is defined and equipe.id in pendingTeamIds %}
+        <span class="rc-btn rc-btn-pending">
+            ⏳ Demande envoyée
+        </span>
+    {% else %}
+        <a href="{{ path('app_equipe_join', {id: equipe.id}) }}" class="rc-btn rc-btn-join">
+            Demander a joindre
+        </a>
+    {% endif %}
 
 </div>
-
-
-
